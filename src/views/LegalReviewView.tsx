@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
-import { computeAnalysisSnapshot } from "@/lib/analysis";
-import { generateReport } from "@/lib/report";
+import { evaluateDesign } from "@/lib/scoring";
+import { createInitialReview } from "@/lib/reviewTemplate";
+import { generateTextReport } from "@/lib/report";
 import { ReviewStatus } from "@/lib/types";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -26,11 +27,13 @@ function SpecRow({ label, value }: { label: string; value: string }) {
 
 function StatusButton({
   active,
+  disabled,
   onClick,
   label,
   tone,
 }: {
   active: boolean;
+  disabled?: boolean;
   onClick: () => void;
   label: string;
   tone: "success" | "warning" | "destructive";
@@ -45,8 +48,10 @@ function StatusButton({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={[
         "px-3 py-1.5 rounded-sm border text-xs font-mono-ui uppercase tracking-wider transition-all",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
         toneClass,
       ].join(" ")}
     >
@@ -88,8 +93,27 @@ function ReportModal({ text, onClose }: { text: string; onClose: () => void }) {
 }
 
 export function LegalReviewView() {
-  const { design, legal, setReviewStatus, setReviewComment, setReviewer } = useStore();
-  const snap = useMemo(() => computeAnalysisSnapshot(design), [design]);
+  const {
+    design,
+    legal,
+    legalReview,
+    setLegalReview,
+    updateReviewPoint,
+    setReviewerMeta,
+    setLegalLocked,
+  } = useStore();
+
+  const score = useMemo(() => evaluateDesign(design), [design]);
+
+  // Auto-initialise a fresh review if the user navigated here directly.
+  useEffect(() => {
+    if (legalReview === null) {
+      setLegalReview(createInitialReview(design, score));
+    }
+    // Only run on mount / when we transition to having no review.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [legalReview]);
+
   const [report, setReport] = useState<string | null>(null);
 
   const safeguardsList = Object.entries(design.safeguards)
@@ -101,6 +125,14 @@ export function LegalReviewView() {
     (acc, p) => ({ ...acc, [p.status]: (acc[p.status] || 0) + 1 }),
     {} as Record<ReviewStatus, number>
   );
+
+  const locked = legal.locked;
+
+  const handleLock = () => {
+    const text = generateTextReport(design, score, legal);
+    setReport(text);
+    setLegalLocked(true);
+  };
 
   return (
     <div className="container py-6 sm:py-8 space-y-6">
@@ -153,22 +185,39 @@ export function LegalReviewView() {
           <div className="border-l-0 lg:border-l border-border lg:pl-6">
             <div className="label-eyebrow mb-2">Auto-analysis</div>
             <div className="text-3xl font-display font-semibold neon-text">
-              {snap.readiness}
+              {score.globalScore}
               <span className="text-sm text-muted-foreground font-mono-ui"> / 100</span>
             </div>
-            <p className="text-sm mt-1">{snap.headline}</p>
+            <p className="text-sm mt-1">{score.statusLabel}</p>
             <div className="h-1.5 mt-4 rounded-full bg-surface-3 overflow-hidden">
-              <div className="h-full bg-gradient-amber" style={{ width: `${snap.readiness}%` }} />
+              <div className="h-full bg-gradient-amber" style={{ width: `${score.globalScore}%` }} />
             </div>
+            {score.keyRisks.length > 0 && (
+              <ul className="mt-4 space-y-1.5">
+                {score.keyRisks.slice(0, 3).map((risk, i) => (
+                  <li key={i} className="text-[11px] text-muted-foreground leading-snug flex gap-2">
+                    <span className="mt-1 h-1 w-1 flex-none rounded-full bg-warning" />
+                    <span>{risk}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>
 
       {/* BOTTOM PANEL — checklist */}
       <section className="panel p-5 sm:p-6">
-        <header className="mb-5">
-          <div className="label-eyebrow mb-1">Review checklist</div>
-          <h3 className="font-display text-lg font-semibold">Critical review points</h3>
+        <header className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <div className="label-eyebrow mb-1">Review checklist</div>
+            <h3 className="font-display text-lg font-semibold">Critical review points</h3>
+          </div>
+          {locked && (
+            <span className="text-[11px] font-mono-ui uppercase tracking-wider px-2 py-1 rounded-sm bg-primary/10 text-primary border border-primary/30">
+              🔒 Locked
+            </span>
+          )}
         </header>
 
         <div className="divide-y divide-border">
@@ -189,28 +238,32 @@ export function LegalReviewView() {
                 </div>
                 <textarea
                   value={p.comment}
-                  onChange={e => setReviewComment(p.id, e.target.value)}
+                  onChange={e => updateReviewPoint(p.id, { comment: e.target.value })}
                   rows={2}
+                  disabled={locked}
                   placeholder="Reviewer comment…"
-                  className="w-full rounded-sm bg-input border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  className="w-full rounded-sm bg-input border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
               <div className="flex lg:flex-col gap-2 lg:items-stretch lg:w-44">
                 <StatusButton
                   active={p.status === "approve"}
-                  onClick={() => setReviewStatus(p.id, "approve")}
+                  disabled={locked}
+                  onClick={() => updateReviewPoint(p.id, { status: "approve" })}
                   label="Approve"
                   tone="success"
                 />
                 <StatusButton
                   active={p.status === "needs-change"}
-                  onClick={() => setReviewStatus(p.id, "needs-change")}
+                  disabled={locked}
+                  onClick={() => updateReviewPoint(p.id, { status: "needs-change" })}
                   label="Needs change"
                   tone="warning"
                 />
                 <StatusButton
                   active={p.status === "blocker"}
-                  onClick={() => setReviewStatus(p.id, "blocker")}
+                  disabled={locked}
+                  onClick={() => updateReviewPoint(p.id, { status: "blocker" })}
                   label="Blocker"
                   tone="destructive"
                 />
@@ -227,17 +280,19 @@ export function LegalReviewView() {
             <label className="label-eyebrow">Reviewer name</label>
             <input
               value={legal.reviewer.name}
-              onChange={e => setReviewer({ name: e.target.value })}
+              onChange={e => setReviewerMeta(e.target.value, legal.reviewer.role)}
+              disabled={locked}
               placeholder="Jane Counsel"
-              className="w-full rounded-sm bg-input border border-border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-sm bg-input border border-border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-2">
             <label className="label-eyebrow">Role</label>
             <select
               value={legal.reviewer.role}
-              onChange={e => setReviewer({ role: e.target.value })}
-              className="w-full rounded-sm bg-input border border-border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              onChange={e => setReviewerMeta(legal.reviewer.name, e.target.value)}
+              disabled={locked}
+              className="w-full rounded-sm bg-input border border-border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {["Legal counsel", "Compliance officer", "External advisor", "In-house lawyer", "Regulatory liaison"].map(o => (
                 <option key={o} value={o}>{o}</option>
@@ -245,10 +300,10 @@ export function LegalReviewView() {
             </select>
           </div>
           <button
-            onClick={() => setReport(generateReport(design, legal))}
+            onClick={handleLock}
             className="px-5 py-2.5 rounded-sm bg-gradient-amber text-primary-foreground font-semibold text-sm shadow-glow hover:brightness-110 transition-all uppercase tracking-wider font-mono-ui whitespace-nowrap"
           >
-            🔒 Lock &amp; generate report
+            🔒 {locked ? "View report" : "Lock & generate report"}
           </button>
         </div>
       </section>

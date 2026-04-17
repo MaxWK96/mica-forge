@@ -1,19 +1,19 @@
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
-import { computeAnalysisSnapshot } from "@/lib/analysis";
+import { evaluateDesign, DesignScore } from "@/lib/scoring";
 
-const VERDICT_STYLE: Record<string, { dot: string; ring: string; text: string }> = {
-  "high-risk": {
+const STATUS_STYLE: Record<DesignScore["status"], { dot: string; ring: string; text: string }> = {
+  high_risk: {
     dot: "bg-destructive",
     ring: "from-destructive/40 to-destructive/0",
     text: "text-destructive",
   },
-  partial: {
+  medium_risk: {
     dot: "bg-warning",
     ring: "from-warning/40 to-warning/0",
     text: "text-warning",
   },
-  ready: {
+  near_ready: {
     dot: "bg-success",
     ring: "from-success/40 to-success/0",
     text: "text-success",
@@ -44,9 +44,9 @@ function PillarRow({ label, value, icon }: { label: string; value: number; icon:
 
 export function AnalysisSnapshot() {
   const { design, flashTick } = useStore();
-  // TODO(scoring-engine): when real engine arrives, swap this call.
-  const snap = useMemo(() => computeAnalysisSnapshot(design), [design]);
-  const style = VERDICT_STYLE[snap.verdict];
+  const score = useMemo(() => evaluateDesign(design), [design]);
+  const style = STATUS_STYLE[score.status];
+  const topRisks = score.keyRisks.slice(0, 3);
 
   return (
     <aside
@@ -64,31 +64,45 @@ export function AnalysisSnapshot() {
         </div>
 
         <h3 className={`mt-3 font-display text-2xl sm:text-[26px] font-semibold leading-tight ${style.text}`}>
-          {snap.headline}
+          {score.statusLabel}
         </h3>
 
         <div className="mt-5">
           <div className="flex items-baseline justify-between mb-2">
             <span className="label-eyebrow">Design readiness</span>
             <span className="font-mono-ui text-sm">
-              <span className="text-foreground font-semibold">{snap.readiness}</span>
+              <span className="text-foreground font-semibold">{score.globalScore}</span>
               <span className="text-muted-foreground"> / 100</span>
             </span>
           </div>
           <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
             <div
               className="h-full bg-gradient-amber shadow-glow transition-all duration-700"
-              style={{ width: `${snap.readiness}%` }}
+              style={{ width: `${score.globalScore}%` }}
             />
           </div>
         </div>
 
         <div className="mt-6 grid gap-3">
-          <PillarRow label="Consumer protection" value={snap.pillars.consumerProtection} icon="CP" />
-          <PillarRow label="Issuer responsibility" value={snap.pillars.issuerResponsibility} icon="IR" />
-          <PillarRow label="Transparency" value={snap.pillars.transparency} icon="TR" />
-          <PillarRow label="Governance & control" value={snap.pillars.governance} icon="GV" />
+          <PillarRow label="Consumer protection" value={score.categories.consumerProtection.score} icon="CP" />
+          <PillarRow label="Issuer responsibility" value={score.categories.issuerResponsibility.score} icon="IR" />
+          <PillarRow label="Transparency" value={score.categories.transparency.score} icon="TR" />
+          <PillarRow label="Governance & control" value={score.categories.governance.score} icon="GV" />
         </div>
+
+        {topRisks.length > 0 && (
+          <div className="mt-6 space-y-2">
+            <div className="label-eyebrow">Key risks</div>
+            <ul className="space-y-1.5">
+              {topRisks.map((risk, i) => (
+                <li key={i} className="text-xs text-foreground/80 leading-snug flex gap-2">
+                  <span className={`mt-1 h-1 w-1 flex-none rounded-full ${style.dot}`} />
+                  <span>{risk}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <p className="mt-6 text-[11px] text-muted-foreground border-t border-border pt-4">
           Indicative only. Final assessment is produced after a legal reviewer locks the report.

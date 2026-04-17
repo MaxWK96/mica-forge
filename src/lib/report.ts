@@ -1,5 +1,5 @@
-import { computeAnalysisSnapshot } from "./analysis";
-import { DesignState, LegalReviewState } from "./types";
+import { DesignSpec, LegalReview } from "./types";
+import { DesignScore, evaluateDesign } from "./scoring";
 
 const ROLE_LABEL: Record<string, string> = {
   utility: "Utility token",
@@ -18,37 +18,46 @@ const STATUS_LABEL: Record<string, string> = {
   blocker: "BLOCKER",
 };
 
-/**
- * TODO(report-generator): Swap this mock for a richer template (Markdown/PDF)
- * driven by the same DesignState + LegalReviewState contract.
- */
-export function generateReport(design: DesignState, legal: LegalReviewState): string {
-  const snap = computeAnalysisSnapshot(design);
+function formatDate(iso: string): string {
+  if (!iso) return new Date().toISOString().slice(0, 19).replace("T", " ") + " UTC";
+  return iso.slice(0, 19).replace("T", " ") + " UTC";
+}
+
+export function generateTextReport(
+  design: DesignSpec,
+  score: DesignScore,
+  review: LegalReview
+): string {
   const safeguards = Object.entries(design.safeguards)
     .filter(([, v]) => v)
     .map(([k]) => `  - ${k}`)
     .join("\n") || "  - (none)";
 
-  const points = legal.points
+  const risks = score.keyRisks.length
+    ? score.keyRisks.map(r => `  - ${r}`).join("\n")
+    : "  - (no material risks flagged)";
+
+  const points = review.points
     .map(
-      p => `[${STATUS_LABEL[p.status]}] ${p.title}
+      p => `[${STATUS_LABEL[p.status] ?? p.status.toUpperCase()}] ${p.title}
   hint    : ${p.hint}
   ref     : ${p.relatedArticles ?? "-"}
   comment : ${p.comment.trim() || "(no comment)"}`
     )
     .join("\n\n");
 
-  const date = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const generated = new Date().toISOString().slice(0, 19).replace("T", " ") + " UTC";
 
-  return `MiCA DESIGN REVIEW REPORT
-=================================================
-Generated         : ${date} UTC
-Reviewer          : ${legal.reviewer.name || "(unsigned)"}
-Reviewer role     : ${legal.reviewer.role}
+  return `# MiCA Design Review Report
 
--- DESIGN SUMMARY --------------------------------
-Token role        : ${ROLE_LABEL[design.tokenRole]}
-Issuer type       : ${ISSUER_LABEL[design.issuerType]}
+Generated         : ${generated}
+Review created    : ${formatDate(review.createdAt)}
+Reviewer          : ${review.reviewer.name || "(unsigned)"}
+Reviewer role     : ${review.reviewer.role || "(unspecified)"}
+
+## Design summary
+Token role        : ${ROLE_LABEL[design.tokenRole] ?? design.tokenRole}
+Issuer type       : ${ISSUER_LABEL[design.issuerType] ?? design.issuerType}
 Single responsible entity : ${design.singleResponsibleEntity ? "Yes" : "No"}
 Expected holders  : ${design.holderScale}
 Market cap range  : ${design.marketCapRange}
@@ -60,17 +69,25 @@ ${safeguards}
 Use case:
 ${design.useCase || "(not provided)"}
 
--- AUTO-ANALYSIS SNAPSHOT ------------------------
-Verdict           : ${snap.headline}
-Design readiness  : ${snap.readiness} / 100
-  Consumer prot.  : ${snap.pillars.consumerProtection}
-  Issuer resp.    : ${snap.pillars.issuerResponsibility}
-  Transparency    : ${snap.pillars.transparency}
-  Governance      : ${snap.pillars.governance}
+## Automatic analysis
+Verdict           : ${score.statusLabel}
+Design readiness  : ${score.globalScore} / 100
+  Consumer prot.  : ${score.categories.consumerProtection.score} (${score.categories.consumerProtection.label})
+  Issuer resp.    : ${score.categories.issuerResponsibility.score} (${score.categories.issuerResponsibility.label})
+  Transparency    : ${score.categories.transparency.score} (${score.categories.transparency.label})
+  Governance      : ${score.categories.governance.score} (${score.categories.governance.label})
 
--- REVIEW POINTS ---------------------------------
+Key risks:
+${risks}
+
+## Legal review
 ${points}
 
-=================================================
+---
 End of report.`;
+}
+
+/** Backward-compatible wrapper used by callers that only have design + review. */
+export function generateReport(design: DesignSpec, review: LegalReview): string {
+  return generateTextReport(design, evaluateDesign(design), review);
 }
