@@ -2,6 +2,8 @@ import { useStore } from "@/lib/store";
 import { presets } from "@/lib/defaults";
 import { ChipGroup, Field, Section, Toggle } from "./ui-bits";
 import {
+  DataArchitecture,
+  DataController,
   HolderScale,
   IssuerType,
   KycLevel,
@@ -136,7 +138,32 @@ export function DesignForm() {
         </Field>
       </Section>
 
-      <Section eyebrow="05 / Presets" title="Design presets">
+      <Section eyebrow="05 / Data & control" title="Data & control">
+        <Field label="Data architecture">
+          <ChipGroup<DataArchitecture>
+            value={design.dataArchitecture}
+            onChange={v => setDesign(d => ({ ...d, dataArchitecture: v }))}
+            options={[
+              { value: "onchain-only", label: "On-chain only" },
+              { value: "hybrid", label: "Hybrid (off-chain data + on-chain state)" },
+              { value: "offchain-platform", label: "Off-chain platform with on-chain token" },
+            ]}
+          />
+        </Field>
+        <Field label="Who controls user data?">
+          <ChipGroup<DataController>
+            value={design.dataController}
+            onChange={v => setDesign(d => ({ ...d, dataController: v }))}
+            options={[
+              { value: "issuer", label: "Issuer" },
+              { value: "third-party", label: "Third-party processor" },
+              { value: "decentralized", label: "Decentralized protocol" },
+            ]}
+          />
+        </Field>
+      </Section>
+
+      <Section eyebrow="06 / Presets" title="Design presets">
         <div className="flex flex-wrap gap-2">
           {Object.entries(presets).map(([key, p]) => (
             <button

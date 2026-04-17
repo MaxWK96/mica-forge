@@ -11,6 +11,16 @@ const ISSUER_LABEL: Record<string, string> = {
   "non-eu": "Non-EU entity",
   none: "No clear issuer",
 };
+const DATA_ARCH_LABEL: Record<string, string> = {
+  "onchain-only": "On-chain only",
+  hybrid: "Hybrid (off-chain data + on-chain state)",
+  "offchain-platform": "Off-chain platform with on-chain token",
+};
+const DATA_CONTROLLER_LABEL: Record<string, string> = {
+  issuer: "Issuer",
+  "third-party": "Third-party processor",
+  decentralized: "Decentralized protocol",
+};
 const STATUS_LABEL: Record<string, string> = {
   pending: "PENDING",
   approve: "APPROVED",
@@ -36,6 +46,11 @@ export function generateTextReport(
   const risks = score.keyRisks.length
     ? score.keyRisks.map(r => `  - ${r}`).join("\n")
     : "  - (no material risks flagged)";
+
+  const residualRisks = score.keyRisks.slice(0, 3);
+  const residualBlock = residualRisks.length
+    ? residualRisks.map(r => `- ${r}`).join("\n")
+    : "- (no residual risks identified)";
 
   const points = review.points
     .map(
@@ -63,6 +78,8 @@ Expected holders  : ${design.holderScale}
 Market cap range  : ${design.marketCapRange}
 Redemption        : ${design.redemption}
 KYC level         : ${design.kyc}
+Data architecture : ${DATA_ARCH_LABEL[design.dataArchitecture] ?? design.dataArchitecture}
+Data controller   : ${DATA_CONTROLLER_LABEL[design.dataController] ?? design.dataController}
 Safeguards        :
 ${safeguards}
 
@@ -79,6 +96,11 @@ Design readiness  : ${score.globalScore} / 100
 
 Key risks:
 ${risks}
+
+## Residual risks if launched as-is
+${residualBlock}
+
+> This assessment is indicative only. Final sign-off requires licensed legal counsel.
 
 ## Legal review
 ${points}

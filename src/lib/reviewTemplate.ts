@@ -5,8 +5,21 @@ interface PointDef {
   id: string;
   title: string;
   relatedArticles?: string;
+  category?: string;
   hint: (design: DesignSpec, score: DesignScore) => string;
 }
+
+const DATA_ARCH_LABEL: Record<DesignSpec["dataArchitecture"], string> = {
+  "onchain-only": "on-chain only",
+  hybrid: "hybrid (off-chain data + on-chain state)",
+  "offchain-platform": "off-chain platform with on-chain token",
+};
+
+const DATA_CONTROLLER_LABEL: Record<DesignSpec["dataController"], string> = {
+  issuer: "the issuer",
+  "third-party": "a third-party processor",
+  decentralized: "a decentralized protocol",
+};
 
 const POINT_DEFS: PointDef[] = [
   {
@@ -29,6 +42,7 @@ const POINT_DEFS: PointDef[] = [
     id: "redemption",
     title: "Redemption & claims against issuer",
     relatedArticles: "MiCA Art. 39, 49",
+    category: "User protection",
     hint: (d) => {
       if (d.tokenRole === "stablecoin" && d.redemption !== "full") {
         return "Stablecoin without full 1:1 redemption at par value is almost certainly a MiCA blocker.";
@@ -67,6 +81,7 @@ const POINT_DEFS: PointDef[] = [
     id: "kyc",
     title: "KYC & AML adequacy",
     relatedArticles: "AMLD6, TFR",
+    category: "User protection",
     hint: (d) => {
       if (d.kyc === "none") {
         return "No KYC declared — evaluate exposure under AMLD6 and the TFR travel rule.";
@@ -75,6 +90,16 @@ const POINT_DEFS: PointDef[] = [
         return "Light KYC — verify it matches issuer type and the expected holder scale.";
       }
       return "Full KYC declared — confirm onboarding flow covers TFR travel-rule data and sanctions screening.";
+    },
+  },
+  {
+    id: "data",
+    title: "Data location & control",
+    relatedArticles: "MiCA Art. 83, 88",
+    hint: (d) => {
+      const arch = DATA_ARCH_LABEL[d.dataArchitecture];
+      const controller = DATA_CONTROLLER_LABEL[d.dataController];
+      return `Architecture is ${arch}; user data is controlled by ${controller}. Assess GDPR exposure and on-chain data permanence risks.`;
     },
   },
   {
@@ -94,6 +119,7 @@ export function createInitialReview(design: DesignSpec, score: DesignScore): Leg
     id: def.id,
     title: def.title,
     relatedArticles: def.relatedArticles,
+    category: def.category,
     hint: def.hint(design, score),
     status: "pending",
     comment: "",

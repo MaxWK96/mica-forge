@@ -6,6 +6,16 @@ export type HolderScale = "<1k" | "1-10k" | "10-100k" | ">100k";
 export type Redemption = "none" | "partial" | "full";
 export type KycLevel = "none" | "light" | "full";
 
+export type DataArchitecture =
+  | "onchain-only"
+  | "hybrid"
+  | "offchain-platform";
+
+export type DataController =
+  | "issuer"
+  | "third-party"
+  | "decentralized";
+
 export interface Safeguards {
   emergencyPause: boolean;
   transparentReserves: boolean;
@@ -23,6 +33,8 @@ export interface DesignState {
   redemption: Redemption;
   kyc: KycLevel;
   safeguards: Safeguards;
+  dataArchitecture: DataArchitecture;
+  dataController: DataController;
 }
 
 /** Canonical alias — `DesignState` is our normalized DesignSpec. */
@@ -35,6 +47,8 @@ export interface ReviewPoint {
   title: string;
   hint: string;
   relatedArticles?: string;
+  /** Optional grouping label shown as a small section tag in the UI. */
+  category?: string;
   status: ReviewStatus;
   comment: string;
 }
