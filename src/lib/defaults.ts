@@ -15,6 +15,8 @@ export const defaultDesign: DesignState = {
     onChainGovernance: false,
     independentAudits: false,
   },
+  dataArchitecture: "onchain-only",
+  dataController: "decentralized",
 };
 
 export const defaultReviewPoints: ReviewPoint[] = [
@@ -31,6 +33,7 @@ export const defaultReviewPoints: ReviewPoint[] = [
     title: "Redemption & claims against issuer",
     hint: "Holders should have an enforceable redemption right at par value.",
     relatedArticles: "MiCA Art. 39, 49",
+    category: "User protection",
     status: "pending",
     comment: "",
   },
@@ -55,6 +58,15 @@ export const defaultReviewPoints: ReviewPoint[] = [
     title: "KYC / AML adequacy",
     hint: "Map onboarding flows to AMLD6 / TFR travel rule expectations.",
     relatedArticles: "AMLD6, TFR",
+    category: "User protection",
+    status: "pending",
+    comment: "",
+  },
+  {
+    id: "data",
+    title: "Data location & control",
+    hint: "Confirm where user data is stored and who controls it — assess GDPR exposure and on-chain data permanence risks.",
+    relatedArticles: "MiCA Art. 83, 88",
     status: "pending",
     comment: "",
   },
@@ -101,6 +113,8 @@ export const presets: Record<string, { label: string; design: import("./types").
         onChainGovernance: true,
         independentAudits: false,
       },
+      dataArchitecture: "onchain-only",
+      dataController: "decentralized",
     },
   },
   stablecoin: {
@@ -120,6 +134,8 @@ export const presets: Record<string, { label: string; design: import("./types").
         onChainGovernance: false,
         independentAudits: true,
       },
+      dataArchitecture: "hybrid",
+      dataController: "issuer",
     },
   },
   governance: {
@@ -139,6 +155,8 @@ export const presets: Record<string, { label: string; design: import("./types").
         onChainGovernance: true,
         independentAudits: true,
       },
+      dataArchitecture: "onchain-only",
+      dataController: "decentralized",
     },
   },
 };

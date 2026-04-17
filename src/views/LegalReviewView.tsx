@@ -15,6 +15,16 @@ const ISSUER_LABEL: Record<string, string> = {
   "non-eu": "Non-EU entity",
   none: "No clear issuer",
 };
+const DATA_ARCH_LABEL: Record<string, string> = {
+  "onchain-only": "On-chain only",
+  hybrid: "Hybrid",
+  "offchain-platform": "Off-chain platform",
+};
+const DATA_CONTROLLER_LABEL: Record<string, string> = {
+  issuer: "Issuer",
+  "third-party": "Third-party processor",
+  decentralized: "Decentralized protocol",
+};
 
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
@@ -180,6 +190,8 @@ export function LegalReviewView() {
               <SpecRow label="Redemption" value={design.redemption} />
               <SpecRow label="KYC" value={design.kyc} />
               <SpecRow label="Safeguards" value={safeguardsList} />
+              <SpecRow label="Data architecture" value={DATA_ARCH_LABEL[design.dataArchitecture] ?? design.dataArchitecture} />
+              <SpecRow label="Data controller" value={DATA_CONTROLLER_LABEL[design.dataController] ?? design.dataController} />
             </div>
           </div>
           <div className="border-l-0 lg:border-l border-border lg:pl-6">
@@ -228,7 +240,14 @@ export function LegalReviewView() {
               </div>
               <div className="space-y-3">
                 <div>
-                  <div className="font-medium text-[15px]">{p.title}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-medium text-[15px]">{p.title}</div>
+                    {p.category && (
+                      <span className="text-[10px] font-mono-ui text-primary uppercase tracking-wider px-2 py-0.5 rounded-sm bg-primary/10 border border-primary/30">
+                        {p.category}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground mt-1">{p.hint}</p>
                   {p.relatedArticles && (
                     <span className="inline-block mt-2 text-[10px] font-mono-ui text-secondary uppercase tracking-wider px-2 py-0.5 rounded-sm bg-secondary/10 border border-secondary/30">
