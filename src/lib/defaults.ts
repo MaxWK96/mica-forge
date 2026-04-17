@@ -79,6 +79,8 @@ export const defaultReviewPoints: ReviewPoint[] = [
 export const defaultLegalReview: LegalReviewState = {
   points: defaultReviewPoints,
   reviewer: { name: "", role: "Legal counsel" },
+  createdAt: "",
+  locked: false,
 };
 
 export const presets: Record<string, { label: string; design: import("./types").DesignState }> = {

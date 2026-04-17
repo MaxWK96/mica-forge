@@ -25,13 +25,16 @@ export interface DesignState {
   safeguards: Safeguards;
 }
 
+/** Canonical alias — `DesignState` is our normalized DesignSpec. */
+export type DesignSpec = DesignState;
+
 export type ReviewStatus = "pending" | "approve" | "needs-change" | "blocker";
 
 export interface ReviewPoint {
   id: string;
   title: string;
-  hint: string; // TODO: replace with logic-driven hint generator
-  relatedArticles?: string; // static label for now
+  hint: string;
+  relatedArticles?: string;
   status: ReviewStatus;
   comment: string;
 }
@@ -44,21 +47,9 @@ export interface ReviewerMeta {
 export interface LegalReviewState {
   points: ReviewPoint[];
   reviewer: ReviewerMeta;
+  createdAt: string;
+  locked: boolean;
 }
 
-export type AnalysisVerdict =
-  | "high-risk"
-  | "partial"
-  | "ready";
-
-export interface AnalysisSnapshotResult {
-  verdict: AnalysisVerdict;
-  headline: string;
-  readiness: number; // 0..100
-  pillars: {
-    consumerProtection: number;
-    issuerResponsibility: number;
-    transparency: number;
-    governance: number;
-  };
-}
+/** Canonical alias — `LegalReviewState` is our LegalReview. */
+export type LegalReview = LegalReviewState;

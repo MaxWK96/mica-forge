@@ -1,9 +1,18 @@
 import { useStore } from "@/lib/store";
 import { DesignForm } from "@/components/DesignForm";
 import { AnalysisSnapshot } from "@/components/AnalysisSnapshot";
+import { evaluateDesign } from "@/lib/scoring";
+import { createInitialReview } from "@/lib/reviewTemplate";
 
 export function BuilderView() {
-  const { setView } = useStore();
+  const { design, setView, setLegalReview } = useStore();
+
+  const handoverToLegal = () => {
+    const score = evaluateDesign(design);
+    setLegalReview(createInitialReview(design, score));
+    setView("legal");
+  };
+
   return (
     <div className="container py-6 sm:py-8">
       <div className="mb-6 flex items-end justify-between gap-4">
@@ -29,7 +38,7 @@ export function BuilderView() {
               </p>
             </div>
             <button
-              onClick={() => setView("legal")}
+              onClick={handoverToLegal}
               className="px-5 py-2.5 rounded-sm bg-gradient-amber text-primary-foreground font-semibold text-sm shadow-glow hover:brightness-110 transition-all uppercase tracking-wider font-mono-ui"
             >
               Send to Legal review →
