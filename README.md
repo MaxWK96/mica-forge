@@ -90,9 +90,9 @@ src/
 
 ## Team
 
-<!-- TODO: replace with real names / roles / contact before submission -->
-- TODO — full name · role · github
-- TODO — full name · role · github
+Solo submission.
+
+- **Max Karlsson** — builder & legal-logic design · [@MaxWK96](https://github.com/MaxWK96)
 
 ## License
 
