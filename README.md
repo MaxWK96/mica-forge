@@ -4,10 +4,11 @@
 teams that want to hand a clean, structured package to a legal reviewer
 *before* they ship.
 
-Built during **ETHSilesia 2026** on the ETHLegal & Finance track.
+Built during **ETHSilesia 2026**.
 
-> A working link to the demo / pitch video will be added here before
-> submission: **TODO — demo video link**.
+**Bounty submission:** ETHLegal & LegalTech — *Legal from Day One*.
+
+**Demo video (3 min):** https://www.youtube.com/watch?v=a3CP4HvIoyo
 
 ---
 
@@ -89,9 +90,9 @@ src/
 
 ## Team
 
-<!-- TODO: replace with real names / roles / contact before submission -->
-- TODO — full name · role · github
-- TODO — full name · role · github
+Solo submission.
+
+- **Max Karlsson** — builder & legal-logic design · [@MaxWK96](https://github.com/MaxWK96)
 
 ## License
 
